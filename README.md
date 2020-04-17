@@ -1,6 +1,3 @@
-# Welcome to GitHub Desktop!
+# Welcome to Shiny App for Celiac's Disease!
 
-This is your README. READMEs are where you can communicate what your project is and how to use it.
-
-Write your name on line 6, save it, and then head back to GitHub Desktop.
-Nelson Helland
+This is the repository for creating a Shiny application for the celiac's disease data.
