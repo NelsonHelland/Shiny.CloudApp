@@ -1,0 +1,58 @@
+# Here is the R code I used to create my Word Cloud
+
+# This inital code cleans and removes unnecessary words
+dtm <- CreateDtm(doc_vec = Celiac$content,
+                 doc_names = Celiac$id,
+                 ngram_window = c(1, 2),
+                 stopword_vec = c(stopwords::stopwords("en"),
+                                  stopwords::stopwords(source = "smart")),
+                 lower = TRUE,
+                 remove_punctuation = TRUE,
+                 remove_numbers = TRUE,
+                 verbose = FALSE,
+                 cpus = 2)
+
+tf_mat <- TermDocFreq(dtm)
+tfidf <- t(dtm[ , tf_mat$term ] * tf_mat$idf)
+tfidf <- t(tfidf)
+csim <- tfidf / sqrt(rowSums(tfidf * tfidf))
+csim <- csim %*% t(csim)
+cdist <- as.dist(1 - csim)
+
+# This section creates the topic clusters
+hc <- hclust(cdist, "ward.D")
+clustering <- cutree(hc, 15)
+plot(hc, main = "Clustering of Celiac Disease Forum Posts",
+     ylab = "", xlab = "", yaxt = "n")
+rect.hclust(hc, 15, border = "royalblue")
+
+p_words <- colSums(dtm) / sum(dtm)
+
+cluster_words <- lapply(unique(clustering), function(x){
+  rows <- dtm[ clustering == x , ]
+  
+  rows <- rows[ , colSums(rows) > 0 ]
+  
+  colSums(rows) / sum(rows) - p_words[ colnames(rows) ]
+})
+cluster_summary <- data.frame(cluster = unique(clustering),
+                              size = as.numeric(table(clustering)),
+                              top_words = sapply(cluster_words, function(d){
+                                paste(
+                                  names(d)[ order(d, decreasing = TRUE) ][ 1:5 ], 
+                                  collapse = ", ")
+                              }),
+                              stringsAsFactors = FALSE)
+
+cluster_summary
+
+# The word cloud is created here
+library(wordcloud)
+
+# This code uses the cluster summary from above to create the word cloud
+wordcloud::wordcloud(words = names(cluster_words[[ 5 ]]), 
+                     freq = cluster_words[[ 5 ]], 
+                     max.words = 75, 
+                     random.order = FALSE, 
+                     colors = c("red", "cyan2", "black"),
+                     main = "Top words in Celiac Forum")
